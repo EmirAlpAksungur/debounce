@@ -1,0 +1,47 @@
+version: "3"
+
+services:
+  frontend:
+    restart: unless-stopped
+    container_name: debounce-frontend
+    build:
+      context: .
+      dockerfile: docker/frontend/Dockerfile
+    ports:
+      - "3000:3000"
+    networks:
+      - network
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.10.0
+    container_name: debounce-elasticsearch
+    environment:
+      - cluster.name=es
+      - discovery.type=single-node
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+      - xpack.security.enabled=false
+    ports:
+      - "9200:9200"
+      - "9300:9300"
+    volumes:
+      - es_data:/usr/share/elasticsearch/data
+    networks:
+      - network
+  nodejs:
+    build:
+      context: .
+      dockerfile: docker/backend/Dockerfile
+    container_name: debounce-iata
+    depends_on:
+      - elasticsearch
+    environment:
+      - ELASTICSEARCH_URL=http://elasticsearch:9200
+    ports:
+      - "5000:5000"
+    networks:
+      - network
+volumes:
+  node_modules:
+  es_data:
+networks:
+  network:
+    driver: bridge
